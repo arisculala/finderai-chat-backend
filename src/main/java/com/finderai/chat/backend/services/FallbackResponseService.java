@@ -11,7 +11,15 @@ import com.finderai.chat.backend.dto.VectorSearchResponseDTO;
 import com.finderai.chat.backend.exceptions.AIServiceException;
 import com.finderai.chat.backend.exceptions.NoMatchesFoundException;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+/**
+ * Service responsible for providing fallback responses when AI services fail or
+ * find no matches.
+ */
 @Service
+@Tag(name = "Fallback Response Service", description = "Generates default responses when AI services fail or find no matches.")
 public class FallbackResponseService {
     private static final Logger logger = LoggerFactory.getLogger(FallbackResponseService.class);
 
@@ -32,10 +40,11 @@ public class FallbackResponseService {
 
     /**
      * Generates a fallback response based on the exception type.
-     * 
+     *
      * @param exception The exception that triggered the fallback.
      * @return A default VectorSearchResponseDTO with a random text response.
      */
+    @Operation(summary = "Generate a fallback response", description = "Returns a predefined response when AI services fail or find no matches.")
     public VectorSearchResponseDTO generateFallbackResponse(Exception exception) {
         String fallbackText = getRandomText(exception);
         logger.warn("Returning fallback response due to {}: {}", exception.getClass().getSimpleName(), fallbackText);

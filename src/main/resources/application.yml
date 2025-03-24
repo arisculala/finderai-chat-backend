@@ -17,19 +17,26 @@ spring:
       ddl-auto: update
     show-sql: true # true will show the sql in the log
   jackson:
-    date-format: yyyy-MM-dd'T'HH:mm:ss.SSSXXX
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSSXXX # date format
     time-zone: UTC
   elasticsearch:
     uris: http://localhost:9200
     username:
     password:
-    enabled: true
+    enabled: true # true enable elasticsearch configuration
 
 logging:
   level:
     root: DEBUG
     org.elasticsearch.client: DEBUG
 
+# list of allowable origins
+cors:
+  allowed-origins:
+    - "http://localhost:3000"
+    - "https://your-production-site.com"
+
+# ai providers
 ai:
   provider:
     finderai:

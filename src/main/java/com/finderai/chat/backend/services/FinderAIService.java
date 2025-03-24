@@ -1,6 +1,5 @@
 package com.finderai.chat.backend.services;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -20,7 +19,14 @@ import com.finderai.chat.backend.dto.VectorSearchResponseDTO;
 import com.finderai.chat.backend.exceptions.AIServiceException;
 import com.finderai.chat.backend.exceptions.NoMatchesFoundException;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+/**
+ * Service responsible for searching similar text responses using FinderAI.
+ */
 @Service
+@Tag(name = "FinderAI Service", description = "Handles requests to FinderAI for searching similar text responses.")
 public class FinderAIService implements AIService {
     private static final Logger logger = LoggerFactory.getLogger(FinderAIService.class);
 
@@ -42,23 +48,30 @@ public class FinderAIService implements AIService {
         this.restTemplate = restTemplate;
     }
 
+    /**
+     * Searches for similar text responses using FinderAI.
+     *
+     * @param query    The input text to search for.
+     * @param provider The AI provider name.
+     * @param model    The AI model to use.
+     * @param limit    The number of results to return.
+     * @return A list of similar text responses.
+     */
+    @Operation(summary = "Search similar texts using FinderAI", description = "Finds similar text responses using FinderAI's AI model.")
     public List<VectorSearchResponseDTO> searchSimilarTexts(String query, String provider, String model, int limit) {
         logger.debug("Calling FinderAIService searchSimilarTexts method");
 
         String defaultModel = (model != null) ? model : apiModel;
-        int defaultLimit = (limit == 0) ? limit : apiLimit;
+        int defaultLimit = (limit == 0) ? apiLimit : limit;
 
         VectorSearchRequestDTO request = new VectorSearchRequestDTO(provider, defaultModel, query, defaultLimit);
 
-        // prepare HTTP headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // create HTTP entity
         HttpEntity<VectorSearchRequestDTO> entity = new HttpEntity<>(request, headers);
 
         try {
-            // call FinderAI Backend
             ResponseEntity<VectorSearchResponseDTO[]> response = restTemplate.exchange(
                     apiUrl + "/api/v1/vectors/search",
                     HttpMethod.POST,
@@ -69,10 +82,9 @@ public class FinderAIService implements AIService {
                 throw new NoMatchesFoundException("No matches found for the query.");
             }
 
-            // return list of results or empty list
-            return response.getBody() != null ? List.of(response.getBody()) : Collections.emptyList();
+            return List.of(response.getBody());
         } catch (RestClientException e) {
-            logger.error("Error while calling FinderAI Backend searchSimilarTexts: {}", e.getMessage(), e);
+            logger.error("Error while calling FinderAI searchSimilarTexts: {}", e.getMessage(), e);
             throw new AIServiceException("FinderAI searchSimilarTexts failed: " + e.getMessage(), e);
         }
     }

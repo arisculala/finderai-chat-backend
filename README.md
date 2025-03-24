@@ -100,6 +100,10 @@ mvn clean install
 mvn spring-boot:run
 ```
 
+### Access Swagger
+
+http://localhost:8081/swagger-ui/index.html#/
+
 ## API Documentation
 
 ### 📌 Vector API

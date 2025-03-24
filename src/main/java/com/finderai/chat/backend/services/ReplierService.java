@@ -3,7 +3,6 @@ package com.finderai.chat.backend.services;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,12 +14,19 @@ import com.finderai.chat.backend.exceptions.AIServiceException;
 import com.finderai.chat.backend.exceptions.NoMatchesFoundException;
 import com.finderai.chat.backend.models.ChatMessage;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+/**
+ * Service responsible for generating chatbot replies using AI services.
+ */
 @Service
+@Tag(name = "Replier Service", description = "Handles chatbot responses by querying different AI services.")
 public class ReplierService {
-    private static final Logger logger = LoggerFactory.getLogger(FinderAIService.class);
+    private static final Logger logger = LoggerFactory.getLogger(ReplierService.class);
 
     private final List<AIService> aiServices;
-    private final FinderAIService finderAIService; // Default AI service
+    private final FinderAIService finderAIService;
     private final FallbackResponseService fallbackResponseService;
 
     public ReplierService(List<AIService> aiServices, FinderAIService finderAIService,
@@ -37,52 +43,36 @@ public class ReplierService {
      * @param botId   The chatbot ID.
      * @param userId  The user ID.
      * @param message The user message.
-     * @param aiType  The AI service type (e.g., "finderai", "openai").
+     * @param aiType  The AI service type.
      * @return A chatbot response message.
      */
+    @Operation(summary = "Generate chatbot response", description = "Queries an AI service to generate a response for the user.")
     public ChatMessage generateReply(String botId, String userId, String message, AIType aiType, int limit) {
-        logger.info("Calling generateReply mtehod");
+        logger.info("Generating chatbot reply...");
 
-        // Use "finderai" as default if aiType is null
         String selectedAIType = (aiType != null) ? aiType.getType() : AIType.FINDER_AI.getType();
 
-        // Select AI service dynamically based on aiType
-        Optional<AIService> selectedService = aiServices.stream()
+        AIService aiService = aiServices.stream()
                 .filter(service -> service.getClass().getSimpleName().toLowerCase()
                         .contains(selectedAIType.toLowerCase()))
-                .findFirst();
-
-        AIService aiService = selectedService.orElse(finderAIService); // Default to FinderAIService
-
-        if (selectedService.isEmpty()) {
-            logger.info("AI service '{}' not found. Falling back to FinderAIService.", selectedAIType);
-        }
+                .findFirst()
+                .orElse(finderAIService);
 
         List<VectorSearchResponseDTO> matches;
         try {
-            // Perform AI search
             matches = aiService.searchSimilarTexts(userId, message, selectedAIType, limit);
         } catch (NoMatchesFoundException | AIServiceException e) {
             logger.warn("Error occurred: {}. Using fallback response.", e.getMessage());
             matches = List.of(fallbackResponseService.generateFallbackResponse(e));
         }
 
-        // Prepare bot response (first match)
-        String botResponse = matches.isEmpty() ? "I'm not sure how to respond to that." : matches.get(0).getText();
-
-        // Construct and save bot reply with full matches in metadata
-        ChatMessage replyMessage = ChatMessage.builder()
+        return ChatMessage.builder()
                 .botId(botId)
                 .userId(userId)
-                .message(botResponse)
+                .message(matches.isEmpty() ? "I'm not sure how to respond to that." : matches.get(0).getText())
                 .sender(ChatMessage.Sender.BOT)
                 .timestamp(LocalDateTime.now())
-                .metadata(Map.of(
-                        "source", selectedAIType,
-                        "matches", matches)) // Store AI type and matches
+                .metadata(Map.of("source", selectedAIType, "matches", matches))
                 .build();
-
-        return replyMessage;
     }
-
 }
