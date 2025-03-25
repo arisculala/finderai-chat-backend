@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.finderai.chat.backend.dto.ChatHistoryResponseDTO;
 import com.finderai.chat.backend.dto.SendChatMessageDTO;
 import com.finderai.chat.backend.models.ChatMessage;
+import com.finderai.chat.backend.models.ChatMessage.Sender;
 import com.finderai.chat.backend.repositories.ChatMessageRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -83,11 +84,11 @@ public class ChatMessageService {
      * @param size   The number of messages per page.
      * @return A paginated response containing chat messages and metadata.
      */
-    @SuppressWarnings("unchecked")
     @Operation(summary = "Get chat history for a user", description = "Retrieves paginated chat messages for a specific user.")
-    public ChatHistoryResponseDTO getUserChatHistory(String userId, int page, int size) {
+    public ChatHistoryResponseDTO getUserChatHistory(String userId, int page, int size, Sender sender) {
         PageRequest pageable = PageRequest.of(page, size);
-        Page<ChatMessage> chatPage = (Page<ChatMessage>) chatMessageRepository.findByUserIdOrderByTimestampAsc(userId,
+        Page<ChatMessage> chatPage = (Page<ChatMessage>) chatMessageRepository.findBydUserIdAndOptionalSender(userId,
+                sender,
                 pageable);
 
         return new ChatHistoryResponseDTO(
@@ -107,12 +108,12 @@ public class ChatMessageService {
      * @param size   The number of messages per page.
      * @return A paginated response containing chat messages and metadata.
      */
-    @SuppressWarnings("unchecked")
     @Operation(summary = "Get chat history for a bot and user", description = "Retrieves paginated chat messages exchanged between a bot and a user.")
-    public ChatHistoryResponseDTO getUserBotChatHistory(String botId, String userId, int page, int size) {
+    public ChatHistoryResponseDTO getUserBotChatHistory(String botId, String userId, int page, int size,
+            Sender sender) {
         PageRequest pageable = PageRequest.of(page, size);
-        Page<ChatMessage> chatPage = (Page<ChatMessage>) chatMessageRepository.findByBotIdAndUserIdOrderByTimestampAsc(
-                botId, userId,
+        Page<ChatMessage> chatPage = (Page<ChatMessage>) chatMessageRepository.findByBotIdAndUserIdAndOptionalSender(
+                botId, userId, sender,
                 pageable);
 
         return new ChatHistoryResponseDTO(

@@ -58,10 +58,12 @@ public class ReplierService {
                 .findFirst()
                 .orElse(finderAIService);
 
+        String source = selectedAIType;
         List<VectorSearchResponseDTO> matches;
         try {
             matches = aiService.searchSimilarTexts(userId, message, selectedAIType, limit);
         } catch (NoMatchesFoundException | AIServiceException e) {
+            source = "fallback";
             logger.warn("Error occurred: {}. Using fallback response.", e.getMessage());
             matches = List.of(fallbackResponseService.generateFallbackResponse(e));
         }
@@ -72,7 +74,7 @@ public class ReplierService {
                 .message(matches.isEmpty() ? "I'm not sure how to respond to that." : matches.get(0).getText())
                 .sender(ChatMessage.Sender.BOT)
                 .timestamp(LocalDateTime.now())
-                .metadata(Map.of("source", selectedAIType, "matches", matches))
+                .metadata(Map.of("source", source, "matches", matches))
                 .build();
     }
 }

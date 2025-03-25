@@ -1,6 +1,6 @@
 # FinderAI-Chat-Backend
 
-FinderAI is an AI-powered application that allows users to generate and store text embeddings using various AI providers such as OpenAI, DeepSeek, and HuggingFace. The application enables vector-based search to find the closest matching text data stored in a PostgreSQL database.
+FinderAI Chat Backend is a robust AI-powered service that supports multi-bot, multi-user conversations with vector-based search, chat history management, and AI-driven responses. It integrates multiple AI providers, stores chat messages in PostgreSQL, and indexes messages in Elasticsearch for analytics and insights.
 
 ## Table of Contents
 
@@ -17,33 +17,39 @@ FinderAI is an AI-powered application that allows users to generate and store te
 ## Features
 
 - Multi-AI Provider Support
-  - FinderAI integrates with multiple AI models for generating text embeddings:
-    - [OpenAI](https://platform.openai.com/ "OpenAI"), [DeepSeek](https://deepseek.com/ "Deepseek"), [HuggingFace](https://huggingface.co/ "HuggingFace")
-- Text Embedding Generation
-  - Convert text into numerical embeddings using AI models.
-- Store Embeddings in PostgreSQL
-  - Save generated embeddings along with metadata in PostgreSQL with pgvector.
-- Vector Search for Similar Text
-  - Perform a vector-based search to find similar text stored in the database.
-- Pluggable AI Provider System
-  - Easily switch between different AI providers without modifying the core logic.
+  - FinderAI integrates with multiple AI models for text embeddings and chat responses:
+    - OpenAI, DeepSeek, HuggingFace
+- Chat Service
+  - Users can interact with AI-powered bots using the POST /chat endpoint.
+  - Supports multi-bot and multi-user conversations.
+  - Stores chat history in PostgreSQL.
+  - Indexes messages in Elasticsearch for analytics and insights.
+- Text Embedding & Vector Search
+  - Convert text into numerical vector embeddings.
+  - Save embeddings in PostgreSQL using pgvector.
+  - Perform semantic search using vector-based similarity.
+- Analytics & Metrics
+  - Uses Elasticsearch for chat analytics, trends, and user interactions.
+  - Can be visualized with tools like Elasticvue.
 
 ## Prerequisites
 
-Make sure you have the following installed:
+Ensure you have the following installed:
 
 - Java 21+
 - Maven
 - Docker
 - PostgreSQL
+- Elasticsearch (for analytics)
+- Elasticvue (GUI for elasticsearch / Kabana)
 
 ## Setup and Installation
 
 **1. Clone the Repository**
 
 ```bash
-git clone https://github.com/arisculala/finderai.git
-cd finderai
+git clone https://github.com/arisculala/finderai-chat-backend.git
+cd finderai-chat-backend
 ```
 
 **2. Setup the Database**
@@ -51,31 +57,25 @@ cd finderai
 - Ensure PostgreSQL is installed and create a database:
 
 ```bash
-CREATE DATABASE finderai_db;
+CREATE DATABASE finderai_chat_backend_db;
 ```
 
-- Enable `pgvector` extension:
-
-```bash
-CREATE EXTENSION IF NOT EXISTS vector;
-```
-
-- Run the schema migration (TODO: integration to liquibase)
+- Run the schema migration (integration using Liquibase)
 
 **3. Configure Environment Variables**
-Set up `appliction.yml`: (update configuration)
+Set up `appliction.yml`: (update configuration, based on your settings)
 
 ```bash
-cd finderai/src/main/resources (or directory location)
-cp example.application.yml application.yml
+cd finderai-chat-backend/src/main/resources (or directory location)
+vi application.yml
 ```
 
 ## Running the Application
 
 ### Run Elasticsearch
 
-- As the application is dependent using elasticsearch for data analytics you need to setup and run elasticsearch first
-- Inside `finderai-chat-backend/scripts` set script permission
+- Elasticsearch is required for chat analytics.
+- Set script permissions:
 
 ```bash
 cd finderai-chat-backend/scripts
@@ -83,8 +83,18 @@ chmod +x run_elasticsearch.sh
 chmod +x stop_elasticsearch.sh
 ```
 
-- `run_elasticsearch.sh` - run elasticsearch in your local (if ES not yet downloaded it will download and run)
-- `stop_elasticsearch.sh` - stop the running instance of elasticsearch
+- Run Elasticsearch:
+
+```bash
+./run_elasticsearch.sh
+```
+
+- Stop Elasticsearch:
+
+```bash
+./stop_elasticsearch.sh
+
+```
 
 ### Elasticsearch Viewer
 
@@ -92,139 +102,160 @@ chmod +x stop_elasticsearch.sh
 
 ### Run finderai-chat-backend
 
-- Option 1: Run Locally
-
 ```bash
-cd finderai
+cd finderai-chat-backend
 mvn clean install
 mvn spring-boot:run
 ```
 
 ### Access Swagger
 
-http://localhost:8081/swagger-ui/index.html#/
+- API Documentation: http://localhost:8081/swagger-ui/index.html#/
 
 ## API Documentation
 
-### 📌 Vector API
+### 📌 Chat API
 
-- **_/api/v1/vectors_** (Store a new vector embedding)
+- **_/api/v1/chat_** (Send a chat message)
 
-  - Request: `POST /api/v1/vectors`
-
-  ```bash
-  {
-    "provider": "huggingface",
-    "model": "test",
-    "text": "Cool is summer cool",
-    "metadata": {
-      "author": "John Doe 1",
-      "category": "Technology",
-      "timestamp": "2025-03-19T12:00:00Z"
-    }
-  }
-  ```
-
-  - Response:
+  - Send a message to a bot and receive a response
+  - Request: `POST /api/v1/chat`
 
   ```bash
   {
-    "id": 293658638168363008,
-    "provider": "huggingface",
-    "model": "test",
-    "text": "Cool is summer cool",
-    "embedding": [
-      -0.054827493,
-      -0.025799233,
-      0.037845585,
-      0.03024301,
-      0.012639361,
-      -0.077821776,
-      0.11216135
-    ],
+    "sender": "USER",
+    "botId": "bot123",
+    "userId": "user123",
+    "message": "cool is summer",
     "metadata": {
         "author": "John Doe 1",
         "category": "Technology",
         "timestamp": "2025-03-19T12:00:00Z"
     },
-    "createdAt": "2025-03-21T16:14:35.253674"
+    "limit": 1
   }
   ```
 
-- **_/api/v1/vectors/search_** (Search for closest vector embeddings)
-  - Request: `GET /api/v1/vectors/search`
+  - Response:
+
   ```bash
   {
-    "provider": "huggingface",
-    "model": "test",
-    "query": "Cool summer",
-    "limit": 10
-  }
-  ```
-  - Response:
-  ```bash
-  [
-    {
-      "id": 293658638168363008,
-      "provider": "huggingface",
-      "model": "test",
-      "text": "Cool is summer cool",
-      "embedding": [
-          -0.054827493,
-          -0.025799233,
-          0.037845585,
-          0.03024301,
-          0.012639361,
-          -0.077821776,
-          0.11216135
-      ],
-      "metadata": {
-          "author": "John Doe 1",
-          "category": "Technology",
-          "timestamp": "2025-03-19T12:00:00Z"
-      },
-      "createdAt": "2025-03-21T16:14:35.253674"
+    "id": 294768334321225728,
+    "botId": "bot123",
+    "userId": "user123",
+    "message": "Oops! Looks like my AI brain had a hiccup.",
+    "sender": "BOT",
+    "timestamp": "2025-03-24T17:44:07.433535",
+    "metadata": {
+        "matches": [
+            {
+                "provider": "fallback",
+                "model": "fallback",
+                "text": "Oops! Looks like my AI brain had a hiccup.",
+                "metadata": null
+            }
+        ],
+        "source": "finderai"
     }
-  ]
-  ```
-
-### 📌 EMBEDDING API
-
-- **_/api/v1/vectors_** (Store a new vector embedding)
-  - Request: `POST /api/v1/embeddings`
-  ```bash
-  {
-    "provider": "huggingface",
-    "model": "test",
-    "text": "hello my old friend"
   }
   ```
+
+### 📌 Chat User History API
+
+- **_/api/v1/chat/users/{userId}/history_** (Get User Chat History)
+
+  - Retrieve all chat history for a specific user, across all bots.
+  - Request: `GET /api/v1/chat/users/{userId}/history?page=0&size=10`
   - Response:
+
   ```bash
   {
-    "provider": "huggingface",
-    "model": "test",
-    "embedding": [
-        -0.06657371,
-        0.05152601,
-        0.03301843,
-        0.028689047,
-        -0.042398233,
-        -0.08200422,
-        0.062944174
-    ],
-    "dimensions": 1536
+    "page": 0,
+    "size": 20,
+    "totalPages": 1,
+    "totalMessages": 2,
+    "messages": [
+        {
+            "id": 294364903915917312,
+            "botId": "bot123",
+            "userId": "user123",
+            "message": "Notifications are a key component of monitors that keep your team informed of issues and support troubleshooting. When creating your monitor, add to the Configure notifications and automations section.",
+            "sender": "USER",
+            "timestamp": "2025-03-23T15:01:02.129231",
+            "metadata": {
+                "author": "John Doe 1",
+                "category": "Technology",
+                "timestamp": "2025-03-19T12:00:00Z"
+            }
+        },
+        {
+            "id": 294365062255087616,
+            "botId": "bot123",
+            "userId": "user123",
+            "message": "how are you today?",
+            "sender": "USER",
+            "timestamp": "2025-03-23T15:01:39.880014",
+            "metadata": {
+                "author": "John Doe 1",
+                "category": "Technology",
+                "timestamp": "2025-03-19T12:00:00Z"
+            }
+        }
+      ]
+  }
+  ```
+
+### 📌 Chat Bot/User History API
+
+- **_/api/v1/bots/{botId}/users/{userId}/history_** (Get Bot/User Chat History)
+
+  - Retrieve chat history for a specific user and bot.
+  - Request: `GET /api/v1/bots/{botId}/users/{userId}/history?page=0&size=10`
+  - Response:
+
+  ```bash
+  {
+    "page": 0,
+    "size": 20,
+    "totalPages": 1,
+    "totalMessages": 2,
+    "messages": [
+        {
+            "id": 294364903915917312,
+            "botId": "bot123",
+            "userId": "user123",
+            "message": "Notifications are a key component of monitors that keep your team informed of issues and support troubleshooting. When creating your monitor, add to the Configure notifications and automations section.",
+            "sender": "USER",
+            "timestamp": "2025-03-23T15:01:02.129231",
+            "metadata": {
+                "author": "John Doe 1",
+                "category": "Technology",
+                "timestamp": "2025-03-19T12:00:00Z"
+            }
+        },
+        {
+            "id": 294365062255087616,
+            "botId": "bot123",
+            "userId": "user123",
+            "message": "how are you today?",
+            "sender": "USER",
+            "timestamp": "2025-03-23T15:01:39.880014",
+            "metadata": {
+                "author": "John Doe 1",
+                "category": "Technology",
+                "timestamp": "2025-03-19T12:00:00Z"
+            }
+        }
+      ]
   }
   ```
 
 ## Future Enhancements
 
-- Integration with Different Data Sources
-  - Import data from Excel, databases, APIs, OCR, and other sources.
-- More AI Models & Providers
-  - Expand to additional AI services for embeddings.
-- Advanced Analytics & Visualization
-  - Monitor and analyze search trends with dashboards.
+- Multi-turn AI Conversations – More natural, contextual bot responses.
+- Integration with More AI Providers – Expand support for additional LLMs.
+- Chatbot Customization – Allow users to configure bot personalities.
+- Advanced Analytics – Monitor chat trends, sentiment analysis.
 
 ## Contributing
 
@@ -244,4 +275,4 @@ This project is licensed under the **MIT License**.
 
 - 📧 Email: arisculala@gmail.com
 - 🐙 GitHub: [arisculala](https://github.com/arisculala "Visit MyGithub")
-- Enjoy using **FinderAI**! 🚀 If you have any questions, feel free to reach out. 😊
+- Enjoy using **FinderAI-Chat-Backend**! 🚀 If you have any questions, feel free to reach out. 😊
